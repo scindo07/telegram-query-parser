@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Query Parser</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #ffffff;
+            --text: #1f2937;
+            --border: #e5e7eb;
+            --radius: 8px;
+            --shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        [data-theme="dark"] {
+            --bg: #111827;
+            --text: #f3f4f6;
+            --border: #374151;
+            --shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.5;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 1.8rem;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            z-index: 100;
+        }
+
+        .theme-toggle:hover {
+            background: var(--border);
+        }
+
+        .main-content {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 1024px) {
+            .main-content {
+                grid-template-columns: 3fr 1fr;
+            }
+        }
+
+        .parser-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg);
+            color: var(--text);
+            font-family: monospace;
+            resize: vertical;
+            box-shadow: var(--shadow);
+        }
+
+        select {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg);
+            color: var(--text);
+            min-width: 150px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            filter: brightness(0.9);
+        }
+
+        .history-section {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            box-shadow: var(--shadow);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .history-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .history-item:hover {
+            background: var(--border);
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .history-item-game {
+            font-weight: 500;
+        }
+
+        .history-item-time {
+            color: var(--text);
+            opacity: 0.7;
+        }
+
+        .history-item-query {
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--text);
+            color: var(--bg);
+            border-radius: var(--radius);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+                margin: 1rem 0;
+            }
+            
+            textarea {
+                min-height: 120px;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            .history-section {
+                margin-top: 1rem;
+            }
+        }
+
+        .keyboard-shortcut {
+            opacity: 0.7;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        /* Custom scrollbar for history */
+        .history-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .history-list::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        .history-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        /* Footer styles */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .social-link {
+            color: var(--text);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            transition: all 0.2s;
+        }
+
+        .social-link:hover {
+            background: var(--border);
+            transform: translateY(-2px);
+        }
+
+        .social-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">&#9790;</button>
+
+    <div class="container">
+        <h1>Universal Query Parser</h1>
+        
+        <div class="main-content">
+            <div class="parser-section">
+                <div class="input-group">
+                    <div class="input-row">
+                        <div style="flex: 1;">
+                            <label for="inputText">Input Raw Query</label>
+                            <textarea id="inputText" placeholder="Paste your raw query here..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-primary" id="convertBtn">Convert <span class="keyboard-shortcut">Ctrl+Enter</span></button>
+                    <button class="btn-secondary" id="clearBtn">Clear <span class="keyboard-shortcut">Ctrl+L</span></button>
+                </div>
+
+                <div class="input-group">
+                    <label for="outputText">Parsed Result</label>
+                    <textarea id="outputText" readonly></textarea>
+                    <button class="btn-secondary" id="copyBtn">Copy Result <span class="keyboard-shortcut">Ctrl+C</span></button>
+                </div>
+            </div>
+
+            <div class="history-section">
+                <div class="history-header">
+                    <h2>History</h2>
+                    <button class="btn-secondary" id="clearHistoryBtn">Clear History</button>
+                </div>
+                <div class="history-list" id="historyList"></div>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>Created by Kelliark</p>
+            <div class="social-links">
+                <a href="https://github.com/scindo07" class="social-link" target="_blank" rel="noopener noreferrer" title="GitHub">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    GitHub
+                </a>
+                <a href="https://t.me/+rn0RclOHRC9jMjFl" class="social-link" target="_blank" rel="noopener noreferrer" title="Telegram">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                    </svg>
+                    Telegram
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        const $ = document.querySelector.bind(document);
+        const inputText = $('#inputText');
+        const outputText = $('#outputText');
+        const convertBtn = $('#convertBtn');
+        const copyBtn = $('#copyBtn');
+        const clearBtn = $('#clearBtn');
+        const toast = $('#toast');
+        const themeToggle = $('#themeToggle');
+        const historyList = $('#historyList');
+        const clearHistoryBtn = $('#clearHistoryBtn');
+
+        // Theme
+        const theme = localStorage.getItem('theme') || 'light';
+        document.body.setAttribute('data-theme', theme);
+
+        themeToggle.onclick = () => {
+            const newTheme = document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        };
+
+        // History Management
+        let history = JSON.parse(localStorage.getItem('queryHistory') || '[]');
+
+        function extractGameInfo(query) {
+            try {
+                // For Telegram queries
+                if (query.includes('#tgWebAppData=')) {
+                    const decodedData = decodeURIComponent(query.split('#tgWebAppData=')[1].split('&')[0]);
+                    // Try to find game name in common patterns
+                    const patterns = [
+                        /game_short_name=([^&]+)/i,
+                        /game=([^&]+)/i,
+                        /title=([^&]+)/i,
+                        /name=([^&]+)/i
+                    ];
+                    
+                    for (let pattern of patterns) {
+                        const match = decodedData.match(pattern);
+                        if (match) {
+                            // Clean up the game name
+                            return decodeURIComponent(match[1])
+                                .replace(/[_-]/g, ' ')
+                                .replace(/\b\w/g, c => c.toUpperCase());
+                        }
+                    }
+                }
+                // For other query types, you can add more detection logic here
+            } catch (e) {
+                console.error('Error extracting game info:', e);
+            }
+            return 'Unknown Game';
+        }
+
+        function addToHistory(query, result) {
+            const timestamp = new Date().toISOString();
+            const game = extractGameInfo(query);
+            history.unshift({ query, result, game, timestamp });
+            if (history.length > 50) history.pop(); // Keep last 50 entries
+            localStorage.setItem('queryHistory', JSON.stringify(history));
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            historyList.innerHTML = history.map(item => `
+                <div class="history-item" data-query="${encodeURIComponent(item.query)}" data-result="${encodeURIComponent(item.result)}">
+                    <div class="history-item-header">
+                        <span class="history-item-game">${item.game}</span>
+                        <span class="history-item-time">${new Date(item.timestamp).toLocaleString()}</span>
+                    </div>
+                    <div class="history-item-query">${item.query}</div>
+                </div>
+            `).join('');
+
+            // Add click handlers
+            document.querySelectorAll('.history-item').forEach(item => {
+                item.onclick = () => {
+                    inputText.value = decodeURIComponent(item.dataset.query);
+                    outputText.value = decodeURIComponent(item.dataset.result);
+                    showToast('Query loaded from history');
+                };
+            });
+        }
+
+        clearHistoryBtn.onclick = () => {
+            if (confirm('Clear all history?')) {
+                history = [];
+                localStorage.setItem('queryHistory', '[]');
+                updateHistoryDisplay();
+                showToast('History cleared');
+            }
+        };
+
+        // Convert
+        function convertQuery() {
+            const raw = inputText.value.trim();
+            if (!raw) {
+                outputText.value = 'Please enter a query to parse';
+                return;
+            }
+
+            try {
+                let decoded = raw;
+                if (raw.includes('#tgWebAppData=')) {
+                    decoded = decodeURIComponent(raw.split('#tgWebAppData=')[1].split('&')[0]);
+                } else if (raw.includes('data=')) {
+                    decoded = decodeURIComponent(raw.split('data=')[1].split('&')[0]);
+                } else {
+                    decoded = decodeURIComponent(raw);
+                }
+                outputText.value = decoded;
+                addToHistory(raw, decoded);
+            } catch (e) {
+                outputText.value = 'Error: Invalid query format';
+            }
+        }
+
+        convertBtn.onclick = convertQuery;
+
+        // Copy
+        copyBtn.onclick = async () => {
+            try {
+                await navigator.clipboard.writeText(outputText.value);
+                showToast('Copied to clipboard!');
+            } catch {
+                outputText.select();
+                document.execCommand('copy');
+                showToast('Copied to clipboard!');
+            }
+        };
+
+        // Clear
+        clearBtn.onclick = () => {
+            inputText.value = '';
+            outputText.value = '';
+            inputText.focus();
+        };
+
+        // Toast
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                convertQuery();
+            } else if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                clearBtn.click();
+            }
+        });
+
+        // Initial load
+        updateHistoryDisplay();
+    </script>
+</body>
+</html>

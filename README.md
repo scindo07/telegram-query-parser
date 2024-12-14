@@ -1,5 +1,5 @@
 # Telegram query parser with session link
-Universal Query Parser: Decode and manage queries with ease, featuring automatic game detection and history tracking.
+Universal Query Parser: Decode and manage queries with ease, featuring automatic game detection.
 
 # 
 Universal Query Parser is a user-friendly tool designed to simplify the process of decoding and managing queries from various platforms. Here's how to use it:
